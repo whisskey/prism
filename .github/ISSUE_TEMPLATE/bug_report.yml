@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal code, config, or commands that reproduce the issue.
+      placeholder: |
+        1. prism.yaml with framework: chi
+        2. Run `prism generate`
+        3. Route X is missing from output
+    validations:
+      required: true
+
+  - type: input
+    id: prism-version
+    attributes:
+      label: prism version
+      placeholder: output of `prism version` or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      placeholder: output of `go version`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - chi
+        - gin
+        - echo
+        - fiber
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Paste relevant command output.
+      render: shell
