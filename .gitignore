@@ -1,0 +1,60 @@
+# AI / editor
+.claude/
+.cursor/
+
+# Local build outputs
+/prism
+/prism-gcl
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go test binaries
+*.test
+
+# Coverage
+*.out
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependencies
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config overrides (committed templates live under tests/mock/)
+.prism.yaml
+.prism.json
+
+# Build artifacts
+dist/
+
+# Generated OpenAPI specs (local dev / CI scratch output)
+openapi.yaml
+openapi.json
+openapi-generated.yaml
+
+# Mock fixture build outputs (go build without -o uses directory name)
+tests/mock/chi/chi
+tests/mock/echo/echo
+tests/mock/gin/gin
+tests/mock/fiber/fiber
+
+# Local secrets
+.env
+.env.local
+*.pem
