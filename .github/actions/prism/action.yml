@@ -1,0 +1,137 @@
+# SPDX-FileCopyrightText: 2026 prism
+# SPDX-License-Identifier: MIT
+
+name: "prism"
+description: "Generate and validate OpenAPI specifications from source code"
+author: "prism"
+
+branding:
+  icon: "file-text"
+  color: "blue"
+
+inputs:
+  command:
+    description: "Command to run (generate, check, diff, lint, print)"
+    required: true
+    default: "check"
+  config:
+    description: "Path to config file"
+    required: false
+    default: ""
+  framework:
+    description: "Framework override (chi, gin, echo, fiber, auto)"
+    required: false
+    default: ""
+  output:
+    description: "Output file path for generated spec"
+    required: false
+    default: ""
+  format:
+    description: "Output format (yaml, json)"
+    required: false
+    default: ""
+  strict:
+    description: "Enable strict mode for check command"
+    required: false
+    default: "false"
+  ci:
+    description: "Enable CI mode for check command"
+    required: false
+    default: "false"
+  verbose:
+    description: "Enable verbose output"
+    required: false
+    default: "false"
+  version:
+    description: "Version of prism to use (latest, v1.0.0, etc.)"
+    required: false
+    default: "latest"
+  working-directory:
+    description: "Working directory for running prism"
+    required: false
+    default: "."
+
+outputs:
+  spec-path:
+    description: "Path to the generated OpenAPI spec file"
+    value: ${{ steps.run.outputs.spec-path }}
+  routes-count:
+    description: "Number of routes extracted"
+    value: ${{ steps.run.outputs.routes-count }}
+  schemas-count:
+    description: "Number of schemas extracted"
+    value: ${{ steps.run.outputs.schemas-count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache: true
+
+    - name: Install prism
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          go install github.com/whisskey/prism/cmd@latest
+        else
+          go install github.com/whisskey/prism/cmd@${{ inputs.version }}
+        fi
+
+    - name: Run prism
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        ARGS="${{ inputs.command }}"
+
+        if [ -n "${{ inputs.config }}" ]; then
+          ARGS="$ARGS --config ${{ inputs.config }}"
+        fi
+
+        if [ -n "${{ inputs.framework }}" ]; then
+          ARGS="$ARGS --framework ${{ inputs.framework }}"
+        fi
+
+        if [ -n "${{ inputs.output }}" ]; then
+          ARGS="$ARGS --output ${{ inputs.output }}"
+        fi
+
+        if [ -n "${{ inputs.format }}" ]; then
+          ARGS="$ARGS --format ${{ inputs.format }}"
+        fi
+
+        if [ "${{ inputs.command }}" = "check" ]; then
+          if [ "${{ inputs.ci }}" = "true" ]; then
+            ARGS="$ARGS --ci"
+          fi
+          if [ "${{ inputs.strict }}" = "true" ]; then
+            ARGS="$ARGS --strict"
+          fi
+        fi
+
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          ARGS="$ARGS --verbose"
+        fi
+
+        echo "Running: prism $ARGS"
+        OUTPUT=$(prism $ARGS 2>&1) || STATUS=$?
+        echo "$OUTPUT"
+        if [ -n "${STATUS:-}" ]; then
+          exit "$STATUS"
+        fi
+
+        if [ "${{ inputs.command }}" = "generate" ]; then
+          OUTPUT_FILE="${{ inputs.output }}"
+          if [ -z "$OUTPUT_FILE" ]; then
+            OUTPUT_FILE="openapi.yaml"
+          fi
+          echo "spec-path=$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
+
+          ROUTES=$(echo "$OUTPUT" | grep -Eo 'Found [0-9]+ routes' | tail -1 | grep -Eo '[0-9]+' || true)
+          SCHEMAS=$(echo "$OUTPUT" | grep -Eo 'Found [0-9]+ schemas' | tail -1 | grep -Eo '[0-9]+' || true)
+          echo "routes-count=${ROUTES:-0}" >> "$GITHUB_OUTPUT"
+          echo "schemas-count=${SCHEMAS:-0}" >> "$GITHUB_OUTPUT"
+        fi
