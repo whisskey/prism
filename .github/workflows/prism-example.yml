@@ -1,0 +1,133 @@
+# SPDX-FileCopyrightText: 2026 prism
+# SPDX-License-Identifier: MIT
+
+# Reference workflow for API repositories using prism.
+# Copy the jobs you need into your own .github/workflows/*.yml file.
+# This workflow does not run automatically in the prism repository.
+
+name: API Spec CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-spec:
+    name: Validate OpenAPI Spec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install prism
+        run: go install github.com/whisskey/prism/cmd@latest
+
+      - name: Check API spec is up-to-date
+        run: |
+          prism generate --output openapi-generated.yaml
+          if [ -f openapi.yaml ]; then
+            prism diff openapi.yaml openapi-generated.yaml
+          else
+            echo "No existing openapi.yaml found, skipping diff"
+          fi
+
+  strict-check:
+    name: Strict API Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install prism
+        run: go install github.com/whisskey/prism/cmd@latest
+
+      - name: Run CI check
+        run: prism check --ci
+
+  generate-spec:
+    name: Generate OpenAPI Spec
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install prism
+        run: go install github.com/whisskey/prism/cmd@latest
+
+      - name: Generate OpenAPI spec
+        run: |
+          prism generate --output openapi.yaml --verbose
+          prism generate --output openapi.json --format json
+
+      - name: Upload spec artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: |
+            openapi.yaml
+            openapi.json
+          retention-days: 30
+
+  using-action:
+    name: Using prism Action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check API spec
+        uses: ./.github/actions/prism
+        with:
+          command: check
+          ci: "true"
+          verbose: "true"
+
+      - name: Generate API spec
+        uses: ./.github/actions/prism
+        with:
+          command: generate
+          output: api-spec.yaml
+          format: yaml
+          verbose: "true"
+
+  lint-inference:
+    name: Lint Inference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install prism
+        run: go install github.com/whisskey/prism/cmd@latest
+
+      - name: Run inference lint
+        run: prism lint --strict ./...
