@@ -1,0 +1,25 @@
+# prism configuration file
+framework: fiber
+output: openapi.yaml
+format: yaml
+openapi:
+  version: 3.0.3
+  info:
+    title: Fiber Mock API
+    version: 1.0.0
+source:
+  paths:
+    - ./
+  include:
+    - '**/*.go'
+  exclude:
+    - '**/*_test.go'
+generation:
+  mode: full
+  merge: false
+  strictMode: false
+  defaultResponses:
+    - "200"
+    - "400"
+    - "500"
+  preserveRouteOrder: true
